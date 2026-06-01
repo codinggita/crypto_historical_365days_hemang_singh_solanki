@@ -9,7 +9,7 @@ This checklist tracks the implementation of the backend codebase, divided into *
 - [x] **Phase 1: Project Setup (Folder Structure, README.md, Phase Plan)**
 - [x] **Phase 2: Express Server & Initial Configurations (npm init, Express, dotenv, server.js)**
 - [x] **Phase 3: MongoDB Connection & Mongoose Config (config/db.js, error handling)**
-- [ ] **Phase 4: Data Modeling & Schema Design (Mongoose Schema with validations, Indexes)**
+- [x] **Phase 4: Data Modeling & Schema Design (Mongoose Schema with validations, Indexes)**
 - [ ] **Phase 5: Database Seeding Script (Script to parse JSON dataset and ingest into MongoDB)**
 - [ ] **Phase 6: Basic CRUD Routes - Fetching & Creation (GET /coins, GET /coins/:id, POST /coins)**
 - [ ] **Phase 7: Basic CRUD Routes - Replacement & Updates (PUT /coins/:id, PATCH /coins/:id, DELETE /coins/:id)**
