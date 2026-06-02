@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers } from '../controllers/coinController.js';
+import { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent } from '../controllers/coinController.js';
 
 const router = express.Router();
 
@@ -38,6 +38,18 @@ router.get('/top-gainers', getTopGainers);
 
 // GET /coins/top-losers - Fetch top losers by daily return
 router.get('/top-losers', getTopLosers);
+
+// GET /coins/oldest - Fetch oldest coin records
+router.get('/oldest', getOldest);
+
+// GET /coins/newest - Fetch newest coin records
+router.get('/newest', getNewest);
+
+// GET /coins/trending - Fetch trending coin records
+router.get('/trending', getTrending);
+
+// GET /coins/recent - Fetch recent coin records
+router.get('/recent', getRecent);
 
 // GET /coins/month/:month - Fetch cryptocurrency records by month (YYYY-MM)
 router.get('/month/:month', getByMonth);

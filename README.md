@@ -120,6 +120,14 @@ All routes are prefixed with `/coins`.
 | **GET** | `/coins/top-gainers` | Fetch latest coin records sorted by daily return percentage descending |
 | **GET** | `/coins/top-losers` | Fetch latest coin records sorted by daily return percentage ascending |
 
+### 6. Chronological & Extrema Filters
+| HTTP Method | Route | Description |
+| :--- | :--- | :--- |
+| **GET** | `/coins/oldest` | Fetch all historical records in order of timestamp ascending (earliest first) |
+| **GET** | `/coins/newest` | Fetch all historical records in order of timestamp descending (latest first) |
+| **GET** | `/coins/trending` | Fetch latest coin records sorted by 24h trading volume descending |
+| **GET** | `/coins/recent` | Fetch all historical records in order of timestamp descending (synonymous to newest) |
+
 ---
 
 ## 🧪 Testing with PowerShell / cURL
@@ -143,3 +151,8 @@ Invoke-RestMethod -Uri "http://localhost:5000/coins/month/2025-12" -Method GET
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:5000/coins/top-gainers?limit=3" -Method GET
 ```
+
+### Fetch Oldest Coin Logs
+```powershell
+Invoke-RestMethod -Uri "http://localhost:5000/coins/oldest?limit=1" -Method GET
+```

@@ -1,4 +1,4 @@
-import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins, getCoinsByName, getCoinsBySymbol, getCoinsByRank, getCoinsByMonth, getCoinsByDate, getLatestCoins, getCoinHistory, getTopMarketCapCoins, getTopVolumeCoins, getTopGainersCoins, getTopLosersCoins } from '../services/coinService.js';
+import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins, getCoinsByName, getCoinsBySymbol, getCoinsByRank, getCoinsByMonth, getCoinsByDate, getLatestCoins, getCoinHistory, getTopMarketCapCoins, getTopVolumeCoins, getTopGainersCoins, getTopLosersCoins, getOldestCoins, getNewestCoins, getTrendingCoins, getRecentCoins } from '../services/coinService.js';
 
 /**
  * @desc    Fetch all cryptocurrency records (paginated)
@@ -596,4 +596,108 @@ const getTopLosers = async (req, res) => {
   }
 };
 
-export { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers };
+/**
+ * @desc    Fetch oldest coin records in chronological order
+ * @route   GET /coins/oldest
+ * @access  Public
+ */
+const getOldest = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getOldestCoins({ page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Oldest coin records fetched successfully',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch oldest coin records',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch newest coin records in chronological order
+ * @route   GET /coins/newest
+ * @access  Public
+ */
+const getNewest = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getNewestCoins({ page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Newest coin records fetched successfully',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch newest coin records',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch trending coin records
+ * @route   GET /coins/trending
+ * @access  Public
+ */
+const getTrending = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getTrendingCoins({ page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Trending coin records fetched successfully',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch trending coin records',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch recent coin records
+ * @route   GET /coins/recent
+ * @access  Public
+ */
+const getRecent = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getRecentCoins({ page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Recent coin records fetched successfully',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent coin records',
+      error: error.message
+    });
+  }
+};
+
+export { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent };
