@@ -114,6 +114,88 @@ const bulkDeleteCoins = async (idsArray) => {
   return result;
 };
 
+/**
+ * Fetch coin records by name (case-insensitive).
+ * @param {String} name - Coin name
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getCoinsByName = async (name, { page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  const filter = { coin_name: { $regex: name, $options: 'i' } };
+  
+  const totalRecords = await Coin.countDocuments(filter);
+  const coins = await Coin.find(filter)
+    .skip(skip)
+    .limit(limit)
+    .sort({ timestamp: -1 });
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
+/**
+ * Fetch coin records by symbol.
+ * @param {String} symbol - Coin symbol
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getCoinsBySymbol = async (symbol, { page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  const filter = { symbol: symbol.toUpperCase() };
+  
+  const totalRecords = await Coin.countDocuments(filter);
+  const coins = await Coin.find(filter)
+    .skip(skip)
+    .limit(limit)
+    .sort({ timestamp: -1 });
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
+/**
+ * Fetch coin records by market cap rank.
+ * @param {Number} rank - Market cap rank
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getCoinsByRank = async (rank, { page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  // Use $expr to handle the case where market_cap_rank might be stored as a string in the DB
+  const filter = { $expr: { $eq: [{ $toInt: "$market_cap_rank" }, Number(rank)] } };
+  
+  const totalRecords = await Coin.countDocuments(filter);
+  const coins = await Coin.find(filter)
+    .skip(skip)
+    .limit(limit)
+    .sort({ timestamp: -1 });
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
 export {
   getAllCoins,
   getCoinById,
@@ -123,5 +205,8 @@ export {
   checkCoinExists,
   bulkCreateCoins,
   bulkUpdateCoins,
-  bulkDeleteCoins
+  bulkDeleteCoins,
+  getCoinsByName,
+  getCoinsBySymbol,
+  getCoinsByRank
 };
