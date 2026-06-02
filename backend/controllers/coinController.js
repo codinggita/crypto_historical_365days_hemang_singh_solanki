@@ -1,4 +1,4 @@
-import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins } from '../services/coinService.js';
+import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins, getCoinsByName, getCoinsBySymbol, getCoinsByRank, getCoinsByMonth, getCoinsByDate, getLatestCoins, getCoinHistory } from '../services/coinService.js';
 
 /**
  * @desc    Fetch all cryptocurrency records (paginated)
@@ -310,4 +310,186 @@ const bulkRemoveCoins = async (req, res) => {
   }
 };
 
-export { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins };
+/**
+ * @desc    Fetch cryptocurrency records by coin name
+ * @route   GET /coins/name/:coinName
+ * @access  Public
+ */
+const getByName = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const result = await getCoinsByName(req.params.coinName, { page, limit });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Coins fetched successfully by name',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coins by name',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch cryptocurrency records by symbol
+ * @route   GET /coins/symbol/:symbol
+ * @access  Public
+ */
+const getBySymbol = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const result = await getCoinsBySymbol(req.params.symbol, { page, limit });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Coins fetched successfully by symbol',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coins by symbol',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch cryptocurrency records by market cap rank
+ * @route   GET /coins/rank/:rank
+ * @access  Public
+ */
+const getByRank = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const result = await getCoinsByRank(req.params.rank, { page, limit });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Coins fetched successfully by rank',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coins by rank',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch cryptocurrency records by month
+ * @route   GET /coins/month/:month
+ * @access  Public
+ */
+const getByMonth = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getCoinsByMonth(req.params.month, { page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Coins fetched successfully by month',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coins by month',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch cryptocurrency records by date
+ * @route   GET /coins/date/:date
+ * @access  Public
+ */
+const getByDate = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getCoinsByDate(req.params.date, { page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Coins fetched successfully by date',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coins by date',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch the latest record for each unique coin
+ * @route   GET /coins/latest
+ * @access  Public
+ */
+const getLatest = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getLatestCoins({ page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Latest coin records fetched successfully',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch latest coins',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch the full price history of a specific coin
+ * @route   GET /coins/history/:coinId
+ * @access  Public
+ */
+const getHistory = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const result = await getCoinHistory(req.params.coinId, { page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Coin history fetched successfully',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coin history',
+      error: error.message
+    });
+  }
+};
+
+export { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory };
