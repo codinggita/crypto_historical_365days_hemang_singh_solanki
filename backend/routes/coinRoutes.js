@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank } from '../controllers/coinController.js';
+import { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory } from '../controllers/coinController.js';
 
 const router = express.Router();
 
@@ -26,6 +26,18 @@ router.get('/symbol/:symbol', getBySymbol);
 
 // GET /coins/rank/:rank - Fetch cryptocurrency records by market cap rank
 router.get('/rank/:rank', getByRank);
+
+// GET /coins/month/:month - Fetch cryptocurrency records by month (YYYY-MM)
+router.get('/month/:month', getByMonth);
+
+// GET /coins/date/:date - Fetch cryptocurrency records by date (YYYY-MM-DD)
+router.get('/date/:date', getByDate);
+
+// GET /coins/latest - Fetch the latest record for each unique coin
+router.get('/latest', getLatest);
+
+// GET /coins/history/:coinId - Fetch full price history for a specific coin
+router.get('/history/:coinId', getHistory);
 
 // GET /coins/:id - Fetch single cryptocurrency record by ID
 router.get('/:id', getCoin);
