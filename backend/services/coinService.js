@@ -467,6 +467,117 @@ const getTopLosersCoins = async ({ page = 1, limit = 50 } = {}) => {
   };
 };
 
+/**
+ * Fetch oldest coin records in chronological order (timestamp ascending).
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getOldestCoins = async ({ page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  const totalRecords = await Coin.countDocuments();
+  const coins = await Coin.find()
+    .skip(skip)
+    .limit(limit)
+    .sort({ timestamp: 1 });
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
+/**
+ * Fetch newest coin records in chronological order (timestamp descending).
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getNewestCoins = async ({ page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  const totalRecords = await Coin.countDocuments();
+  const coins = await Coin.find()
+    .skip(skip)
+    .limit(limit)
+    .sort({ timestamp: -1 });
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
+/**
+ * Fetch trending coin records (latest records grouped, sorted by 24h volume descending).
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getTrendingCoins = async ({ page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+
+  const coins = await Coin.aggregate([
+    { $sort: { timestamp: -1 } },
+    { $group: { _id: '$coin_id', latestRecord: { $first: '$$ROOT' } } },
+    { $replaceRoot: { newRoot: '$latestRecord' } },
+    {
+      $addFields: {
+        volume_num: { $toDouble: '$volume' }
+      }
+    },
+    { $sort: { volume_num: -1 } },
+    { $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: 'count' }]
+      }
+    }
+  ]);
+
+  const data = coins[0].data;
+  const totalRecords = coins[0].totalCount[0]?.count || 0;
+
+  return {
+    coins: data,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
+/**
+ * Fetch recent coin records (last 7 days of daily logs or latest timestamp records).
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getRecentCoins = async ({ page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  const totalRecords = await Coin.countDocuments();
+  const coins = await Coin.find()
+    .skip(skip)
+    .limit(limit)
+    .sort({ timestamp: -1 });
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
 export {
   getAllCoins,
   getCoinById,
@@ -487,5 +598,9 @@ export {
   getTopMarketCapCoins,
   getTopVolumeCoins,
   getTopGainersCoins,
-  getTopLosersCoins
+  getTopLosersCoins,
+  getOldestCoins,
+  getNewestCoins,
+  getTrendingCoins,
+  getRecentCoins
 };
