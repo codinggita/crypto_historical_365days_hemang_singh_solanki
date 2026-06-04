@@ -1,4 +1,22 @@
-import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins, getCoinsByName, getCoinsBySymbol, getCoinsByRank, getCoinsByMonth, getCoinsByDate, getLatestCoins, getCoinHistory, getTopMarketCapCoins, getTopVolumeCoins, getTopGainersCoins, getTopLosersCoins, getOldestCoins, getNewestCoins, getTrendingCoins, getRecentCoins, getCoinPerformance } from '../services/coinService.js';
+import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins, getCoinsByName, getCoinsBySymbol, getCoinsByRank, getCoinsByMonth, getCoinsByDate, getLatestCoins, getCoinHistory, getTopMarketCapCoins, getTopVolumeCoins, getTopGainersCoins, getTopLosersCoins, getOldestCoins, getNewestCoins, getTrendingCoins, getRecentCoins, getCoinPerformance, compareTwoCoins, compareThreeCoins, getCurrentPrice, getCoinHistoryByMonth } from '../services/coinService.js';
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+const parsePositiveInteger = (value, fallback, fieldName) => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  const parsedValue = Number.parseInt(value, 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    const error = new Error(`${fieldName} must be a positive integer`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return parsedValue;
+};
 
 /**
  * @desc    Fetch all cryptocurrency records (paginated)
@@ -709,7 +727,7 @@ const getPerformance = async (req, res) => {
   try {
     const { coinId } = req.params;
     const { metric } = req.query;
-
+    
     if (!coinId?.trim()) {
       return res.status(400).json({
         success: false,
@@ -740,4 +758,174 @@ const getPerformance = async (req, res) => {
   }
 };
 
-export { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent, getPerformance };
+/**
+ * @desc    Compare the latest records and performance statistics for two coins
+ * @route   GET /coins/compare/:coin1/:coin2
+ * @access  Public
+ */
+const compareTwo = async (req, res) => {
+  try {
+    const { coin1, coin2 } = req.params;
+
+    if (!coin1?.trim() || !coin2?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'coin1 and coin2 route parameters are required'
+      });
+    }
+
+    const result = await compareTwoCoins(coin1, coin2);
+
+    res.status(200).json({
+      success: true,
+      message: 'Two-coin comparison fetched successfully',
+      data: result
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to compare coins',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Compare the latest records and performance statistics for three coins
+ * @route   GET /coins/compare/:coin1/:coin2/:coin3
+ * @access  Public
+ */
+const compareThree = async (req, res) => {
+  try {
+    const { coin1, coin2, coin3 } = req.params;
+
+    if (!coin1?.trim() || !coin2?.trim() || !coin3?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'coin1, coin2, and coin3 route parameters are required'
+      });
+    }
+
+    const result = await compareThreeCoins(coin1, coin2, coin3);
+
+    res.status(200).json({
+      success: true,
+      message: 'Three-coin comparison fetched successfully',
+      data: result
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to compare coins',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch the latest price for a coin
+ * @route   GET /coins/price/:coinId
+ * @access  Public
+ */
+const getPrice = async (req, res) => {
+  try {
+    if (!req.params.coinId?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'coinId route parameter is required'
+      });
+    }
+
+    const result = await getCurrentPrice(req.params.coinId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Current coin price fetched successfully',
+      data: result
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch current coin price',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Fetch a coin's historical records filtered by month
+ * @route   GET /coins/history/:coinId/:month
+ * @access  Public
+ */
+const getHistoryByMonth = async (req, res) => {
+  try {
+    const { coinId, month } = req.params;
+    const page = parsePositiveInteger(req.query.page, 1, 'page');
+    const limit = parsePositiveInteger(req.query.limit, 50, 'limit');
+
+    if (!coinId?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'coinId route parameter is required'
+      });
+    }
+
+    if (!month?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'month route parameter is required'
+      });
+    }
+
+    if (!MONTH_PATTERN.test(month.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid month format. Use YYYY-MM'
+      });
+    }
+
+    const result = await getCoinHistoryByMonth(coinId, month, { page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: 'Monthly coin history fetched successfully',
+      ...result
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch monthly coin history',
+      error: error.message
+    });
+  }
+};
+
+export { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent, getPerformance, compareTwo, compareThree, getPrice, getHistoryByMonth };

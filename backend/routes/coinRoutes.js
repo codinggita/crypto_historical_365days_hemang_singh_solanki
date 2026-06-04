@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent, getPerformance } from '../controllers/coinController.js';
+import { getCoins, getCoin, addCoin, updateCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent, getPerformance, compareTwo, compareThree, getPrice, getHistoryByMonth } from '../controllers/coinController.js';
 
 const router = express.Router();
 
@@ -54,6 +54,15 @@ router.get('/recent', getRecent);
 // GET /coins/performance/:coinId - Fetch performance statistics for a coin
 router.get('/performance/:coinId', getPerformance);
 
+// GET /coins/compare/:coin1/:coin2/:coin3 - Compare three cryptocurrencies
+router.get('/compare/:coin1/:coin2/:coin3', compareThree);
+
+// GET /coins/compare/:coin1/:coin2 - Compare two cryptocurrencies
+router.get('/compare/:coin1/:coin2', compareTwo);
+
+// GET /coins/price/:coinId - Fetch the latest price for a cryptocurrency
+router.get('/price/:coinId', getPrice);
+
 // GET /coins/month/:month - Fetch cryptocurrency records by month (YYYY-MM)
 router.get('/month/:month', getByMonth);
 
@@ -62,6 +71,9 @@ router.get('/date/:date', getByDate);
 
 // GET /coins/latest - Fetch the latest record for each unique coin
 router.get('/latest', getLatest);
+
+// GET /coins/history/:coinId/:month - Fetch monthly price history for a specific coin
+router.get('/history/:coinId/:month', getHistoryByMonth);
 
 // GET /coins/history/:coinId - Fetch full price history for a specific coin
 router.get('/history/:coinId', getHistory);
