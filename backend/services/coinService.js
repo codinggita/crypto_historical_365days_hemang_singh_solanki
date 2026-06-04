@@ -1,5 +1,27 @@
 import Coin from '../models/Coin.js';
 
+const PERFORMANCE_METRIC_MAP = {
+  volatility: ['coinId', 'volatility'],
+  returns: ['coinId', 'dailyReturn', 'cumulativeReturn', 'growthPercentage'],
+  'market-cap': ['coinId', 'averageMarketCap'],
+  marketcap: ['coinId', 'averageMarketCap'],
+  volume: ['coinId', 'averageVolume']
+};
+
+const createServiceError = (message, statusCode) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const roundMetric = (value) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return null;
+  }
+
+  return Number(value.toFixed(2));
+};
+
 /**
  * Fetch all coin records with default pagination.
  * @param {Object} options - Query options (page, limit)
@@ -586,86 +608,124 @@ const getRecentCoins = async ({ page = 1, limit = 50 } = {}) => {
  * @returns {Object|null} - Performance data or null if not found
  */
 const getCoinPerformance = async (coinId, metric = null) => {
-  // Check if coin exists by trying to fetch the latest record
-  const latestRecord = await Coin.findOne({
-    coin_id: { $regex: new RegExp(`^${coinId}$`, 'i') }
-  }).sort({ timestamp: -1 });
+  const normalizedCoinId = coinId?.trim();
+  const normalizedMetric = metric?.trim().toLowerCase() || null;
 
-  if (!latestRecord) {
-    return null;
+  if (!normalizedCoinId) {
+    throw createServiceError('coinId is required', 400);
   }
 
-  // Calculate statistics across all history safely using $convert with onError/onNull fallbacks
-  const stats = await Coin.aggregate([
-    { $match: { coin_id: { $regex: new RegExp(`^${coinId}$`, 'i') } } },
+  if (normalizedMetric && !PERFORMANCE_METRIC_MAP[normalizedMetric]) {
+    throw createServiceError(
+      'Invalid metric. Allowed values are volatility, returns, market-cap, and volume',
+      400
+    );
+  }
+
+  const coinFilter = {
+    coin_id: { $regex: new RegExp(`^${normalizedCoinId}$`, 'i') }
+  };
+
+  const performanceStats = await Coin.aggregate([
+    { $match: coinFilter },
+    { $sort: { timestamp: 1, _id: 1 } },
     {
       $project: {
-        volatility_val: { $convert: { input: '$volatility_7d', to: 'double', onError: null, onNull: null } },
-        market_cap_val: { $convert: { input: '$market_cap', to: 'double', onError: null, onNull: null } },
-        volume_val: { $convert: { input: '$volume', to: 'double', onError: null, onNull: null } },
-        daily_return_val: { $convert: { input: '$daily_return', to: 'double', onError: null, onNull: null } }
+        coin_id: 1,
+        numericPrice: {
+          $convert: { input: '$price', to: 'double', onError: null, onNull: null }
+        },
+        numericMarketCap: {
+          $convert: { input: '$market_cap', to: 'double', onError: null, onNull: null }
+        },
+        numericVolume: {
+          $convert: { input: '$volume', to: 'double', onError: null, onNull: null }
+        },
+        numericDailyReturn: {
+          $convert: { input: '$daily_return', to: 'double', onError: null, onNull: null }
+        },
+        numericCumulativeReturn: {
+          $convert: { input: '$cumulative_return', to: 'double', onError: null, onNull: null }
+        }
       }
     },
     {
       $group: {
-        _id: null,
-        avgVolatility: { $avg: '$volatility_val' },
-        maxVolatility: { $max: '$volatility_val' },
-        minVolatility: { $min: '$volatility_val' },
-        avgMarketCap: { $avg: '$market_cap_val' },
-        maxMarketCap: { $max: '$market_cap_val' },
-        minMarketCap: { $min: '$market_cap_val' },
-        avgVolume: { $avg: '$volume_val' },
-        maxVolume: { $max: '$volume_val' },
-        minVolume: { $min: '$volume_val' },
-        avgDailyReturn: { $avg: '$daily_return_val' },
-        maxDailyReturn: { $max: '$daily_return_val' },
-        minDailyReturn: { $min: '$daily_return_val' }
+        _id: '$coin_id',
+        coinId: { $first: '$coin_id' },
+        recordCount: { $sum: 1 },
+        latestDailyReturnField: { $last: '$numericDailyReturn' },
+        latestCumulativeReturnField: { $last: '$numericCumulativeReturn' },
+        averagePrice: { $avg: '$numericPrice' },
+        highestPrice: { $max: '$numericPrice' },
+        lowestPrice: { $min: '$numericPrice' },
+        averageMarketCap: { $avg: '$numericMarketCap' },
+        averageVolume: { $avg: '$numericVolume' },
+        volatility: { $stdDevPop: '$numericPrice' },
+        prices: { $push: '$numericPrice' }
       }
     }
   ]);
 
-  if (!stats || stats.length === 0) {
-    return null;
+  if (!performanceStats.length) {
+    throw createServiceError(`Coin '${normalizedCoinId}' does not exist`, 404);
   }
+
+  const stats = performanceStats[0];
+
+  if (!stats.recordCount || !stats.prices.length) {
+    throw createServiceError(`No historical dataset found for coin '${normalizedCoinId}'`, 404);
+  }
+
+  const validPrices = stats.prices.filter((price) => typeof price === 'number');
+
+  if (!validPrices.length) {
+    throw createServiceError(`No valid price data found for coin '${normalizedCoinId}'`, 404);
+  }
+
+  const latestPrice = validPrices[validPrices.length - 1];
+  const previousPrice = validPrices.length > 1 ? validPrices[validPrices.length - 2] : null;
+  const firstPrice = validPrices[0];
+
+  const calculatedDailyReturn =
+    previousPrice && previousPrice !== 0
+      ? ((latestPrice - previousPrice) / previousPrice) * 100
+      : null;
+
+  const calculatedGrowthPercentage =
+    firstPrice && firstPrice !== 0
+      ? ((latestPrice - firstPrice) / firstPrice) * 100
+      : null;
 
   const performance = {
-    volatility: {
-      latestVolatility: latestRecord.volatility_7d != null ? parseFloat(latestRecord.volatility_7d) : null,
-      averageVolatility: stats[0].avgVolatility,
-      maxVolatility: stats[0].maxVolatility,
-      minVolatility: stats[0].minVolatility
-    },
-    marketCap: {
-      latestMarketCap: latestRecord.market_cap != null ? parseFloat(latestRecord.market_cap) : null,
-      averageMarketCap: stats[0].avgMarketCap,
-      maxMarketCap: stats[0].maxMarketCap,
-      minMarketCap: stats[0].minMarketCap
-    },
-    volume: {
-      latestVolume: latestRecord.volume != null ? parseFloat(latestRecord.volume) : null,
-      averageVolume: stats[0].avgVolume,
-      maxVolume: stats[0].maxVolume,
-      minVolume: stats[0].minVolume
-    },
-    returns: {
-      latestDailyReturn: latestRecord.daily_return != null ? parseFloat(latestRecord.daily_return) : null,
-      averageDailyReturn: stats[0].avgDailyReturn,
-      cumulativeReturn: latestRecord.cumulative_return != null ? parseFloat(latestRecord.cumulative_return) : null,
-      maxDailyReturn: stats[0].maxDailyReturn,
-      minDailyReturn: stats[0].minDailyReturn
-    }
+    coinId: stats.coinId,
+    averagePrice: roundMetric(stats.averagePrice),
+    highestPrice: roundMetric(stats.highestPrice),
+    lowestPrice: roundMetric(stats.lowestPrice),
+    dailyReturn: roundMetric(
+      typeof stats.latestDailyReturnField === 'number'
+        ? stats.latestDailyReturnField
+        : calculatedDailyReturn
+    ),
+    cumulativeReturn: roundMetric(
+      typeof stats.latestCumulativeReturnField === 'number'
+        ? stats.latestCumulativeReturnField
+        : calculatedGrowthPercentage
+    ),
+    growthPercentage: roundMetric(calculatedGrowthPercentage),
+    averageMarketCap: roundMetric(stats.averageMarketCap),
+    averageVolume: roundMetric(stats.averageVolume),
+    volatility: roundMetric(stats.volatility)
   };
 
-  if (metric) {
-    const formattedMetric = metric.toLowerCase();
-    if (formattedMetric === 'volatility') return { volatility: performance.volatility };
-    if (formattedMetric === 'market-cap' || formattedMetric === 'marketcap') return { marketCap: performance.marketCap };
-    if (formattedMetric === 'volume') return { volume: performance.volume };
-    if (formattedMetric === 'returns' || formattedMetric === 'return') return { returns: performance.returns };
+  if (!normalizedMetric) {
+    return performance;
   }
 
-  return performance;
+  return PERFORMANCE_METRIC_MAP[normalizedMetric].reduce((accumulator, field) => {
+    accumulator[field] = performance[field];
+    return accumulator;
+  }, {});
 };
 
 export {

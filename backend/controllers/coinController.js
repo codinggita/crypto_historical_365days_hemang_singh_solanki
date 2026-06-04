@@ -710,14 +710,14 @@ const getPerformance = async (req, res) => {
     const { coinId } = req.params;
     const { metric } = req.query;
 
-    const result = await getCoinPerformance(coinId, metric);
-
-    if (!result) {
-      return res.status(404).json({
+    if (!coinId?.trim()) {
+      return res.status(400).json({
         success: false,
-        message: `Coin performance statistics not found for coin_id: '${coinId}'`
+        message: 'coinId route parameter is required'
       });
     }
+
+    const result = await getCoinPerformance(coinId, metric);
 
     res.status(200).json({
       success: true,
@@ -725,6 +725,13 @@ const getPerformance = async (req, res) => {
       data: result
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to fetch coin performance statistics',
