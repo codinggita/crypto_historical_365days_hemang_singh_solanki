@@ -14,6 +14,30 @@ const createServiceError = (message, statusCode) => {
   return error;
 };
 
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const buildCoinIdFilter = (coinId) => ({
+  coin_id: { $regex: new RegExp(`^${escapeRegex(coinId)}$`, 'i') }
+});
+
+const findLatestCoinRecord = async (coinId) => {
+  const normalizedCoinId = coinId?.trim();
+
+  if (!normalizedCoinId) {
+    throw createServiceError('coinId is required', 400);
+  }
+
+  return Coin.findOne(buildCoinIdFilter(normalizedCoinId)).sort({ timestamp: -1 });
+};
+
+const validateHistoryMonth = (month) => {
+  if (!MONTH_PATTERN.test(month)) {
+    throw createServiceError('Invalid month format. Use YYYY-MM', 400);
+  }
+};
+
 const roundMetric = (value) => {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return null;
@@ -622,9 +646,7 @@ const getCoinPerformance = async (coinId, metric = null) => {
     );
   }
 
-  const coinFilter = {
-    coin_id: { $regex: new RegExp(`^${normalizedCoinId}$`, 'i') }
-  };
+  const coinFilter = buildCoinIdFilter(normalizedCoinId);
 
   const performanceStats = await Coin.aggregate([
     { $match: coinFilter },
@@ -728,6 +750,178 @@ const getCoinPerformance = async (coinId, metric = null) => {
   }, {});
 };
 
+/**
+ * Fetch the latest record and performance statistics for a coin.
+ * @param {String} coinId - The coin_id field (e.g., "bitcoin")
+ * @returns {Object|null} - Coin comparison data or null if not found
+ */
+const getCoinComparisonData = async (coinId) => {
+  const latestRecord = await findLatestCoinRecord(coinId);
+
+  if (!latestRecord) {
+    return null;
+  }
+
+  const performance = await getCoinPerformance(coinId);
+
+  return {
+    coinId: latestRecord.coin_id,
+    latestRecord,
+    performance
+  };
+};
+
+/**
+ * Compare the latest records and performance statistics for two coins.
+ * @param {String} coin1 - First coin_id
+ * @param {String} coin2 - Second coin_id
+ * @returns {Array|null} - Comparison data or null if any coin is not found
+ */
+const compareTwoCoins = async (coin1, coin2) => {
+  const coinIds = [coin1?.trim(), coin2?.trim()];
+
+  if (coinIds.some((coinId) => !coinId)) {
+    throw createServiceError('Both coin identifiers are required for comparison', 400);
+  }
+
+  if (coinIds[0].toLowerCase() === coinIds[1].toLowerCase()) {
+    throw createServiceError('Comparison requires two different coin identifiers', 400);
+  }
+
+  const coins = await Promise.all([
+    getCoinComparisonData(coinIds[0]),
+    getCoinComparisonData(coinIds[1])
+  ]);
+
+  const missingCoins = coinIds.filter((coinId, index) => !coins[index]);
+
+  if (missingCoins.length) {
+    throw createServiceError(
+      `Comparison data not found for coin_id: ${missingCoins.join(', ')}`,
+      404
+    );
+  }
+
+  return coins;
+};
+
+/**
+ * Compare the latest records and performance statistics for three coins.
+ * @param {String} coin1 - First coin_id
+ * @param {String} coin2 - Second coin_id
+ * @param {String} coin3 - Third coin_id
+ * @returns {Array|null} - Comparison data or null if any coin is not found
+ */
+const compareThreeCoins = async (coin1, coin2, coin3) => {
+  const coinIds = [coin1?.trim(), coin2?.trim(), coin3?.trim()];
+
+  if (coinIds.some((coinId) => !coinId)) {
+    throw createServiceError('Three coin identifiers are required for comparison', 400);
+  }
+
+  const uniqueCoinIds = new Set(coinIds.map((coinId) => coinId.toLowerCase()));
+
+  if (uniqueCoinIds.size !== coinIds.length) {
+    throw createServiceError('Comparison requires three different coin identifiers', 400);
+  }
+
+  const coins = await Promise.all([
+    getCoinComparisonData(coinIds[0]),
+    getCoinComparisonData(coinIds[1]),
+    getCoinComparisonData(coinIds[2])
+  ]);
+
+  const missingCoins = coinIds.filter((coinId, index) => !coins[index]);
+
+  if (missingCoins.length) {
+    throw createServiceError(
+      `Comparison data not found for coin_id: ${missingCoins.join(', ')}`,
+      404
+    );
+  }
+
+  return coins;
+};
+
+/**
+ * Fetch the latest price for a specific coin.
+ * @param {String} coinId - The coin_id field (e.g., "bitcoin")
+ * @returns {Object|null} - Current coin price data or null if not found
+ */
+const getCurrentPrice = async (coinId) => {
+  const latestRecord = await findLatestCoinRecord(coinId);
+
+  if (!latestRecord) {
+    throw createServiceError(`Current price not found for coin_id: '${coinId}'`, 404);
+  }
+
+  return {
+    coinId: latestRecord.coin_id,
+    coinName: latestRecord.coin_name,
+    symbol: latestRecord.symbol,
+    price: latestRecord.price,
+    timestamp: latestRecord.timestamp
+  };
+};
+
+/**
+ * Fetch a coin's historical records filtered by month.
+ * @param {String} coinId - The coin_id field (e.g., "bitcoin")
+ * @param {String} month - Month string in YYYY-MM format
+ * @param {Object} options - Query options (page, limit)
+ * @returns {Object} - Paginated results with metadata
+ */
+const getCoinHistoryByMonth = async (coinId, month, { page = 1, limit = 50 } = {}) => {
+  const normalizedCoinId = coinId?.trim();
+  const normalizedMonth = month?.trim();
+
+  if (!normalizedCoinId) {
+    throw createServiceError('coinId is required', 400);
+  }
+
+  if (!normalizedMonth) {
+    throw createServiceError('month is required', 400);
+  }
+
+  validateHistoryMonth(normalizedMonth);
+
+  const latestRecord = await findLatestCoinRecord(normalizedCoinId);
+
+  if (!latestRecord) {
+    throw createServiceError(`Coin '${normalizedCoinId}' does not exist`, 404);
+  }
+
+  const skip = (page - 1) * limit;
+  const filter = {
+    ...buildCoinIdFilter(normalizedCoinId),
+    month: normalizedMonth
+  };
+
+  const totalRecords = await Coin.countDocuments(filter);
+
+  if (!totalRecords) {
+    throw createServiceError(
+      `No historical records found for coin '${normalizedCoinId}' in month '${normalizedMonth}'`,
+      404
+    );
+  }
+
+  const coins = await Coin.find(filter)
+    .skip(skip)
+    .limit(limit)
+    .sort({ timestamp: -1 });
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    }
+  };
+};
+
 export {
   getAllCoins,
   getCoinById,
@@ -753,5 +947,9 @@ export {
   getNewestCoins,
   getTrendingCoins,
   getRecentCoins,
-  getCoinPerformance
+  getCoinPerformance,
+  compareTwoCoins,
+  compareThreeCoins,
+  getCurrentPrice,
+  getCoinHistoryByMonth
 };
