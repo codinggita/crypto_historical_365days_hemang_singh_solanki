@@ -1261,6 +1261,87 @@ const searchCoins = async (q, { page = 1, limit = 50 } = {}) => {
   };
 };
 
+/**
+ * Fetch coin records filtered by specific criteria.
+ * Supports: high-price, low-price, bullish, bearish, profitable, loss-making
+ * @param {String} filterType - Type of filter to apply
+ * @param {Object} queryParams - Request query parameters for custom overrides and generic filters
+ * @param {Object} options - Pagination options
+ * @returns {Object} - Paginated and filtered results with metadata
+ */
+const getFilteredCoins = async (filterType, queryParams = {}, { page = 1, limit = 50 } = {}) => {
+  const skip = (page - 1) * limit;
+  const baseFilter = buildQueryFilter(queryParams);
+
+  let specificFilter = {};
+  switch (filterType) {
+    case 'high-price': {
+      const threshold = parseNumberParam(queryParams.threshold, 'threshold') ?? 100;
+      specificFilter = { price: { $gte: threshold } };
+      break;
+    }
+    case 'low-price': {
+      const threshold = parseNumberParam(queryParams.threshold, 'threshold') ?? 1;
+      specificFilter = { price: { $lt: threshold } };
+      break;
+    }
+    case 'bullish': {
+      specificFilter = {
+        price_ma7: { $ne: null },
+        price_ma30: { $ne: null },
+        $expr: { $gt: ['$price_ma7', '$price_ma30'] }
+      };
+      break;
+    }
+    case 'bearish': {
+      specificFilter = {
+        price_ma7: { $ne: null },
+        price_ma30: { $ne: null },
+        $expr: { $lt: ['$price_ma7', '$price_ma30'] }
+      };
+      break;
+    }
+    case 'profitable': {
+      specificFilter = { daily_return: { $gt: 0 } };
+      break;
+    }
+    case 'loss-making': {
+      specificFilter = { daily_return: { $lt: 0 } };
+      break;
+    }
+    default:
+      throw createServiceError(`Invalid filter type: ${filterType}`, 400);
+  }
+
+  const finalFilter = { ...baseFilter, ...specificFilter };
+  const sortObject = buildSortObject(queryParams.sort);
+  const projection = buildFieldProjection(queryParams.fields);
+
+  const totalRecords = await Coin.countDocuments(finalFilter);
+  let query = Coin.find(finalFilter)
+    .skip(skip)
+    .limit(limit)
+    .sort(sortObject);
+
+  if (projection) {
+    query = query.select(projection);
+  }
+
+  const coins = await query;
+
+  return {
+    coins,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      totalRecords,
+      limit
+    },
+    appliedFilters: finalFilter,
+    appliedSort: sortObject
+  };
+};
+
 export {
   getAllCoins,
   getCoinById,
@@ -1292,7 +1373,8 @@ export {
   compareThreeCoins,
   getCurrentPrice,
   getCoinHistoryByMonth,
-  searchCoins
+  searchCoins,
+  getFilteredCoins
 };
 
 
