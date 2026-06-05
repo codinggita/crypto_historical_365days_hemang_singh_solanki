@@ -917,6 +917,37 @@ async function runTests() {
       console.log('❌ [ERROR] Phase 26 tests failed:', phase26Err.message);
     }
 
+    // (v) HTTP HEAD & OPTIONS Methods (Phase 27)
+    console.log('\n--- Testing HTTP HEAD & OPTIONS Methods (Phase 27) ---');
+    try {
+      // 1. Check HEAD request on /coins
+      const headRes = await fetch(`${BASE_URL}/coins`, {
+        method: 'HEAD'
+      });
+      const headBody = await headRes.text();
+      const contentLength = headRes.headers.get('content-length');
+
+      if (headRes.status === 200 && headBody === '') {
+        console.log(`✅ [PASS] HEAD /coins returned status 200 and empty body (Content-Length: ${contentLength})`);
+      } else {
+        console.log(`❌ [FAIL] HEAD /coins failed: Status ${headRes.status}, Body length: ${headBody.length}`);
+      }
+
+      // 2. Check OPTIONS request on /coins
+      const optionsRes = await fetch(`${BASE_URL}/coins`, {
+        method: 'OPTIONS'
+      });
+
+      if (optionsRes.status === 204 || optionsRes.status === 200) {
+        console.log(`✅ [PASS] OPTIONS /coins returned status ${optionsRes.status} with headers`);
+      } else {
+        console.log(`❌ [FAIL] OPTIONS /coins failed: Status ${optionsRes.status}`);
+      }
+
+    } catch (phase27Err) {
+      console.log('❌ [ERROR] Phase 27 tests failed:', phase27Err.message);
+    }
+
   } catch (err) {
     console.log('❌ [ERROR] Auth tests threw error:', err.message);
   }
