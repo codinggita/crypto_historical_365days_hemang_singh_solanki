@@ -1,4 +1,4 @@
-import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, replaceCoin as replaceCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins, getCoinsByName, getCoinsBySymbol, getCoinsByRank, getCoinsByMonth, getCoinsByDate, getLatestCoins, getCoinHistory, getTopMarketCapCoins, getTopVolumeCoins, getTopGainersCoins, getTopLosersCoins, getOldestCoins, getNewestCoins, getTrendingCoins, getRecentCoins, getCoinPerformance, compareTwoCoins, compareThreeCoins, getCurrentPrice, getCoinHistoryByMonth, searchCoins as searchCoinsService } from '../services/coinService.js';
+import { getAllCoins, getCoinById, createCoin, updateCoin as updateCoinService, replaceCoin as replaceCoinService, deleteCoin as deleteCoinService, checkCoinExists as checkCoinExistsService, bulkCreateCoins, bulkUpdateCoins, bulkDeleteCoins, getCoinsByName, getCoinsBySymbol, getCoinsByRank, getCoinsByMonth, getCoinsByDate, getLatestCoins, getCoinHistory, getTopMarketCapCoins, getTopVolumeCoins, getTopGainersCoins, getTopLosersCoins, getOldestCoins, getNewestCoins, getTrendingCoins, getRecentCoins, getCoinPerformance, compareTwoCoins, compareThreeCoins, getCurrentPrice, getCoinHistoryByMonth, searchCoins as searchCoinsService, getFilteredCoins as getFilteredCoinsService } from '../services/coinService.js';
 
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -1320,6 +1320,50 @@ const searchCoins = async (req, res) => {
   }
 };
 
-export { getCoins, getCoin, addCoin, updateCoin, replaceCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent, getPerformance, compareTwo, compareThree, getPrice, getHistoryByMonth, getSortedByPriceAsc, getSortedByPriceDesc, getSortedByVolumeDesc, getSortedByRankAsc, getSortedByReturnDesc, searchCoins };
+/**
+ * @desc    Fetch coin records filtered by specific criteria (high-price, low-price, bullish, bearish, profitable, loss-making)
+ * @route   GET /coins/filter/:filterType
+ * @access  Public
+ */
+const getFilteredCoins = async (req, res) => {
+  try {
+    const { filterType } = req.params;
+    
+    // Validate filter type
+    const ALLOWED_FILTERS = ['high-price', 'low-price', 'bullish', 'bearish', 'profitable', 'loss-making'];
+    if (!ALLOWED_FILTERS.includes(filterType)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid filter type. Allowed values are: ${ALLOWED_FILTERS.join(', ')}`
+      });
+    }
+
+    const page = parsePositiveInteger(req.query.page, 1, 'page');
+    const limit = parsePositiveInteger(req.query.limit, 50, 'limit');
+
+    const result = await getFilteredCoinsService(filterType, req.query, { page, limit });
+
+    res.status(200).json({
+      success: true,
+      message: `Coins filtered by ${filterType} fetched successfully`,
+      ...result
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: `Failed to fetch coins filtered by ${filterType}`,
+      error: error.message
+    });
+  }
+};
+
+export { getCoins, getCoin, addCoin, updateCoin, replaceCoin, removeCoin, checkCoinExists, bulkAddCoins, bulkModifyCoins, bulkRemoveCoins, getByName, getBySymbol, getByRank, getByMonth, getByDate, getLatest, getHistory, getTopMarketCap, getTopVolume, getTopGainers, getTopLosers, getOldest, getNewest, getTrending, getRecent, getPerformance, compareTwo, compareThree, getPrice, getHistoryByMonth, getSortedByPriceAsc, getSortedByPriceDesc, getSortedByVolumeDesc, getSortedByRankAsc, getSortedByReturnDesc, searchCoins, getFilteredCoins };
 
 

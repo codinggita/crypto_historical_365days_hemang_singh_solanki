@@ -146,6 +146,59 @@ async function runTests() {
       name: '20. Regex injection check - GET /search/coins?q=%2B',
       path: '/search/coins?q=%2B',
       expectedStatus: 200
+    },
+    {
+      name: '21. Filter high-price - GET /coins/filter/high-price',
+      path: '/coins/filter/high-price?limit=5',
+      expectedStatus: 200,
+      verify: (data) => {
+        return data.coins && data.coins.length > 0 && data.coins.every(c => c.price >= 100);
+      }
+    },
+    {
+      name: '22. Filter low-price - GET /coins/filter/low-price',
+      path: '/coins/filter/low-price?limit=5',
+      expectedStatus: 200,
+      verify: (data) => {
+        return data.coins && data.coins.length > 0 && data.coins.every(c => c.price < 1);
+      }
+    },
+    {
+      name: '23. Filter bullish - GET /coins/filter/bullish',
+      path: '/coins/filter/bullish?limit=5',
+      expectedStatus: 200,
+      verify: (data) => {
+        return data.coins && data.coins.every(c => c.price_ma7 > c.price_ma30);
+      }
+    },
+    {
+      name: '24. Filter bearish - GET /coins/filter/bearish',
+      path: '/coins/filter/bearish?limit=5',
+      expectedStatus: 200,
+      verify: (data) => {
+        return data.coins && data.coins.every(c => c.price_ma7 < c.price_ma30);
+      }
+    },
+    {
+      name: '25. Filter profitable - GET /coins/filter/profitable',
+      path: '/coins/filter/profitable?limit=5',
+      expectedStatus: 200,
+      verify: (data) => {
+        return data.coins && data.coins.length > 0 && data.coins.every(c => c.daily_return > 0);
+      }
+    },
+    {
+      name: '26. Filter loss-making - GET /coins/filter/loss-making',
+      path: '/coins/filter/loss-making?limit=5',
+      expectedStatus: 200,
+      verify: (data) => {
+        return data.coins && data.coins.length > 0 && data.coins.every(c => c.daily_return < 0);
+      }
+    },
+    {
+      name: '27. Filter invalid-filter - GET /coins/filter/invalid-filter',
+      path: '/coins/filter/invalid-filter',
+      expectedStatus: 400
     }
   ];
 
