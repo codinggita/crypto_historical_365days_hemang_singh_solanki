@@ -170,17 +170,29 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Sign JWT token
+    // Generate access token (short-lived, 15m)
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || 'supersecretkey123',
-      { expiresIn: '1d' }
+      { expiresIn: '15m' }
     );
+
+    // Generate refresh token (long-lived, 7d)
+    const refreshToken = jwt.sign(
+      { id: user._id, jti: crypto.randomBytes(24).toString('hex') },
+      process.env.JWT_SECRET || 'supersecretkey123',
+      { expiresIn: '7d' }
+    );
+
+    // Save refresh token to user document
+    user.refreshTokens.push(refreshToken);
+    await user.save();
 
     res.status(200).json({
       success: true,
       message: 'Login successful',
-      token,
+      token, // Access Token
+      refreshToken,
       data: {
         id: user._id,
         name: user.name,
@@ -198,15 +210,30 @@ export const loginUser = async (req, res) => {
 };
 
 /**
- * @desc    Logout user (stateless token clearance direction)
+ * @desc    Logout user and revoke refresh token
  * @route   POST /auth/logout
  * @access  Public
  */
 export const logoutUser = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Logout successful. Please delete your access token from client-side storage.'
-  });
+  try {
+    const { refreshToken } = req.body || {};
+    if (refreshToken) {
+      await User.updateOne(
+        { refreshTokens: refreshToken },
+        { $pull: { refreshTokens: refreshToken } }
+      );
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Logout successful. Refresh token revoked.'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Logout failed',
+      error: error.message
+    });
+  }
 };
 
 /**
@@ -344,5 +371,118 @@ export const changePassword = async (req, res) => {
     res.status(200).json({ success: true, message: 'Password changed successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Password change failed', error: error.message });
+  }
+};
+
+/**
+ * @desc    Refresh access token and rotate refresh token
+ * @route   POST /auth/refresh-token
+ * @access  Public
+ */
+export const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body || {};
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token is required'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'supersecretkey123');
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired refresh token'
+      });
+    }
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check token list for current active token
+    const hasToken = user.refreshTokens.includes(refreshToken);
+
+    if (!hasToken) {
+      // Token Reuse Detection! Clear user's active sessions as defensive shield.
+      user.refreshTokens = [];
+      await user.save();
+      return res.status(401).json({
+        success: false,
+        message: 'Token reuse detected! All active sessions revoked.'
+      });
+    }
+
+    // Rotate: Issue new access token and rotated refresh token
+    const newAccessToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || 'supersecretkey123',
+      { expiresIn: '15m' }
+    );
+    const newRefreshToken = jwt.sign(
+      { id: user._id, jti: crypto.randomBytes(24).toString('hex') },
+      process.env.JWT_SECRET || 'supersecretkey123',
+      { expiresIn: '7d' }
+    );
+
+    // Remove old token and add new rotated token
+    user.refreshTokens = user.refreshTokens.filter((t) => t !== refreshToken);
+    user.refreshTokens.push(newRefreshToken);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Token refresh failed',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Revoke specific refresh token
+ * @route   POST /auth/revoke-token
+ * @access  Public
+ */
+export const revokeToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body || {};
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token is required'
+      });
+    }
+
+    await User.updateOne(
+      { refreshTokens: refreshToken },
+      { $pull: { refreshTokens: refreshToken } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Refresh token revoked successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Token revocation failed',
+      error: error.message
+    });
   }
 };

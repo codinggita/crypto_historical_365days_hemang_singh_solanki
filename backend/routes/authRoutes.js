@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser, verifyEmail, loginUser, logoutUser, getUserProfile, forgotPassword, resetPassword, changePassword } from '../controllers/authController.js';
+import { registerUser, verifyEmail, loginUser, logoutUser, getUserProfile, forgotPassword, resetPassword, changePassword, refreshToken, revokeToken } from '../controllers/authController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -27,5 +27,11 @@ router.post('/reset-password/:resetToken', resetPassword);
 
 // POST /auth/change-password - Change logged-in user password (protected)
 router.post('/change-password', protect, changePassword);
+
+// POST /auth/refresh-token - Refresh expired access token
+router.post('/refresh-token', refreshToken);
+
+// POST /auth/revoke-token - Revoke refresh token
+router.post('/revoke-token', revokeToken);
 
 export default router;

@@ -638,6 +638,220 @@ async function runTests() {
       console.log('❌ [FAIL] POST /auth/logout failed:', logoutRes.status, logoutData);
     }
 
+    // (s) JWT Security & Token Refreshing (Phase 24)
+    console.log('\n--- Testing JWT Security & Token Refreshing (Phase 24) ---');
+    
+    // 1. Login to get initial token and refresh token
+    const phase24LoginRes = await fetch(`${BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: uniqueEmail, password: 'finalpassword123' })
+    });
+    const phase24LoginData = await phase24LoginRes.json();
+    
+    if (phase24LoginRes.status === 200 && phase24LoginData.success && phase24LoginData.token && phase24LoginData.refreshToken) {
+      console.log('✅ [PASS] Phase 24 Login: retrieved access token and refresh token');
+      const initialAccessToken = phase24LoginData.token;
+      const initialRefreshToken = phase24LoginData.refreshToken;
+
+      // 2. Refresh token with invalid token
+      const invalidRefreshRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: 'invalid_refresh_token_123' })
+      });
+      const invalidRefreshData = await invalidRefreshRes.json();
+      if (invalidRefreshRes.status === 401 && !invalidRefreshData.success) {
+        console.log('✅ [PASS] POST /auth/refresh-token with invalid token rejected (401 Unauthorized)');
+      } else {
+        console.log('❌ [FAIL] POST /auth/refresh-token with invalid token was not rejected:', invalidRefreshRes.status, invalidRefreshData);
+      }
+
+      // 3. Refresh token with missing token
+      const missingRefreshRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const missingRefreshData = await missingRefreshRes.json();
+      if (missingRefreshRes.status === 400 && !missingRefreshData.success) {
+        console.log('✅ [PASS] POST /auth/refresh-token with missing token rejected (400 Bad Request)');
+      } else {
+        console.log('❌ [FAIL] POST /auth/refresh-token with missing token was not rejected:', missingRefreshRes.status, missingRefreshData);
+      }
+
+      // 4. Refresh token with valid token (Rotation)
+      const validRefreshRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: initialRefreshToken })
+      });
+      const validRefreshData = await validRefreshRes.json();
+      let rotatedAccessToken = '';
+      let rotatedRefreshToken = '';
+      if (validRefreshRes.status === 200 && validRefreshData.success && validRefreshData.accessToken && validRefreshData.refreshToken) {
+        console.log('✅ [PASS] POST /auth/refresh-token rotated successfully (returned new tokens)');
+        rotatedAccessToken = validRefreshData.accessToken;
+        rotatedRefreshToken = validRefreshData.refreshToken;
+      } else {
+        console.log('❌ [FAIL] POST /auth/refresh-token rotation failed:', validRefreshRes.status, validRefreshData);
+      }
+
+      // 5. Token Reuse Detection: attempt to reuse initialRefreshToken (which was already rotated)
+      if (rotatedRefreshToken) {
+        const reuseRefreshRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: initialRefreshToken })
+        });
+        const reuseRefreshData = await reuseRefreshRes.json();
+        if (reuseRefreshRes.status === 401 && reuseRefreshData.message.includes('reuse')) {
+          console.log('✅ [PASS] Token Reuse Detection triggered (401 and cleared sessions)');
+        } else {
+          console.log('❌ [FAIL] Token Reuse Detection did not trigger as expected:', reuseRefreshRes.status, reuseRefreshData);
+        }
+
+        // 6. Verify that the rotatedRefreshToken is also invalidated now because of reuse detection clearing all tokens
+        const invalidatedRefreshRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rotatedRefreshToken })
+        });
+        const invalidatedRefreshData = await invalidatedRefreshRes.json();
+        if (invalidatedRefreshRes.status === 401) {
+          console.log('✅ [PASS] Rotated token is now invalid due to reuse detection sweep');
+        } else {
+          console.log('❌ [FAIL] Rotated token is still valid after reuse detection sweep:', invalidatedRefreshRes.status, invalidatedRefreshData);
+        }
+      }
+
+      // 7. Login again to test Revocation
+      const phase24LoginRes2 = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: uniqueEmail, password: 'finalpassword123' })
+      });
+      const phase24LoginData2 = await phase24LoginRes2.json();
+      if (phase24LoginRes2.status === 200 && phase24LoginData2.refreshToken) {
+        const freshRefreshToken = phase24LoginData2.refreshToken;
+
+        // 8. Revoke the token
+        const revokeRes = await fetch(`${BASE_URL}/auth/revoke-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: freshRefreshToken })
+        });
+        const revokeData = await revokeRes.json();
+        if (revokeRes.status === 200 && revokeData.success) {
+          console.log('✅ [PASS] POST /auth/revoke-token revoked token successfully');
+        } else {
+          console.log('❌ [FAIL] POST /auth/revoke-token failed:', revokeRes.status, revokeData);
+        }
+
+        // 9. Try refreshing with the revoked token (should fail)
+        const refreshRevokedRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: freshRefreshToken })
+        });
+        const refreshRevokedData = await refreshRevokedRes.json();
+        if (refreshRevokedRes.status === 401) {
+          console.log('✅ [PASS] Refreshing with revoked token rejected (401 Unauthorized)');
+        } else {
+          console.log('❌ [FAIL] Refreshing with revoked token accepted:', refreshRevokedRes.status, refreshRevokedData);
+        }
+      } else {
+        console.log('❌ Skipping revocation tests: could not log in again');
+      }
+
+      // 10. Test logout with refresh token cleanup
+      const phase24LoginRes3 = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: uniqueEmail, password: 'finalpassword123' })
+      });
+      const phase24LoginData3 = await phase24LoginRes3.json();
+      if (phase24LoginRes3.status === 200 && phase24LoginData3.refreshToken) {
+        const cleanupRefreshToken = phase24LoginData3.refreshToken;
+
+        const logoutCleanupRes = await fetch(`${BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: cleanupRefreshToken })
+        });
+        const logoutCleanupData = await logoutCleanupRes.json();
+        if (logoutCleanupRes.status === 200 && logoutCleanupData.success) {
+          console.log('✅ [PASS] POST /auth/logout with refreshToken cleanup succeeded');
+        } else {
+          console.log('❌ [FAIL] POST /auth/logout with refreshToken cleanup failed:', logoutCleanupRes.status, logoutCleanupData);
+        }
+
+        // Verify the token is gone by trying to refresh it
+        const refreshCleanupRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: cleanupRefreshToken })
+        });
+        if (refreshCleanupRes.status === 401) {
+          console.log('✅ [PASS] Refresh with logged-out token rejected (401 Unauthorized)');
+        } else {
+          console.log('❌ [FAIL] Refresh with logged-out token accepted:', refreshCleanupRes.status);
+        }
+      } else {
+        console.log('❌ Skipping logout cleanup test: could not log in again');
+      }
+
+    } else {
+      console.log('❌ Skipping Phase 24 tests: login did not return correct token fields');
+    }
+
+    // (t) Custom Middlewares & Security Enhancements (Phase 25)
+    console.log('\n--- Testing Custom Middlewares & Security Enhancements (Phase 25) ---');
+    try {
+      // 1. Check Rate Limiter Headers on a simple endpoint
+      const rateLimitRes = await fetch(`${BASE_URL}/`);
+      const limitHeader = rateLimitRes.headers.get('x-ratelimit-limit');
+      const remainingHeader = rateLimitRes.headers.get('x-ratelimit-remaining');
+      const resetHeader = rateLimitRes.headers.get('x-ratelimit-reset');
+
+      if (limitHeader && remainingHeader && resetHeader) {
+        console.log(`✅ [PASS] Rate Limit headers present (Limit: ${limitHeader}, Remaining: ${remainingHeader}, Reset: ${resetHeader})`);
+      } else {
+        console.log('❌ [FAIL] Rate Limit headers missing');
+      }
+
+      // 2. Check Rate Limiter quota decrement
+      const res1 = await fetch(`${BASE_URL}/`);
+      const rem1 = parseInt(res1.headers.get('x-ratelimit-remaining'), 10);
+      const res2 = await fetch(`${BASE_URL}/`);
+      const rem2 = parseInt(res2.headers.get('x-ratelimit-remaining'), 10);
+      if (!isNaN(rem1) && !isNaN(rem2) && rem1 - rem2 === 1) {
+        console.log('✅ [PASS] Rate Limiter decrements remaining quota correctly');
+      } else {
+        console.log(`❌ [FAIL] Rate Limiter quota decrement failed (Remaining 1: ${rem1}, Remaining 2: ${rem2})`);
+      }
+
+      // 3. Check CORS Options Preflight response
+      const corsRes = await fetch(`${BASE_URL}/coins`, {
+        method: 'OPTIONS',
+        headers: {
+          'Origin': 'http://localhost:3000',
+          'Access-Control-Request-Method': 'GET',
+          'Access-Control-Request-Headers': 'Content-Type,Authorization'
+        }
+      });
+      const corsOrigin = corsRes.headers.get('access-control-allow-origin');
+      const corsCredentials = corsRes.headers.get('access-control-allow-credentials');
+
+      if (corsOrigin === 'http://localhost:3000' && corsCredentials === 'true') {
+        console.log('✅ [PASS] Secure CORS configurations verified successfully');
+      } else {
+        console.log('❌ [FAIL] Secure CORS configuration check failed:', { corsOrigin, corsCredentials });
+      }
+
+    } catch (middlewareErr) {
+      console.log('❌ [ERROR] Custom middleware tests failed:', middlewareErr.message);
+    }
+
   } catch (err) {
     console.log('❌ [ERROR] Auth tests threw error:', err.message);
   }
