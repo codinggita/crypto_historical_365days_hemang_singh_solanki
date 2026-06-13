@@ -1,0 +1,588 @@
+{
+  "info": {
+    "_postman_id": "86dfdfcf-e392-49cf-898f-cf86dfaefc30",
+    "name": "Crypto Market Analytics API",
+    "description": "API collection covering CRUD, analytics, custom filters, JWT authentication, rate limiting, and simulations for the Crypto Market Analytics backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"your_verification_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/verify-email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revoke Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/revoke-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "revoke-token"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Basic CRUD Routes",
+      "item": [
+        {
+          "name": "Get All Coins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins?page=1&limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Coin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/6a1bcfe62392c80934571272",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "6a1bcfe62392c80934571272"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Coin Record",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coin_id\": \"bitcoin\",\n  \"coin_name\": \"Bitcoin\",\n  \"symbol\": \"BTC\",\n  \"market_cap_rank\": 1,\n  \"timestamp\": \"2024-12-08T00:00:00.000Z\",\n  \"date\": \"2024-12-08\",\n  \"month\": \"2024-12\",\n  \"price\": 97000.5,\n  \"market_cap\": 1900000000000,\n  \"volume\": 45000000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Replace Coin Record",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coin_id\": \"bitcoin\",\n  \"coin_name\": \"Bitcoin\",\n  \"symbol\": \"BTC\",\n  \"market_cap_rank\": 1,\n  \"timestamp\": \"2024-12-08T00:00:00.000Z\",\n  \"date\": \"2024-12-08\",\n  \"month\": \"2024-12\",\n  \"price\": 98500.25,\n  \"market_cap\": 1920000000000,\n  \"volume\": 48000000000,\n  \"daily_return\": 1.5,\n  \"price_ma7\": 96000,\n  \"price_ma30\": 94000,\n  \"volatility_7d\": 2.3,\n  \"cumulative_return\": 150.4\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coins/6a1bcfe62392c80934571272",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "6a1bcfe62392c80934571272"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Coin fields",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 99000.75,\n  \"daily_return\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coins/6a1bcfe62392c80934571272",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "6a1bcfe62392c80934571272"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Coin Record",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/6a1bcfe62392c80934571272",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "6a1bcfe62392c80934571272"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics & Statistics",
+      "item": [
+        {
+          "name": "Get Analytics Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/analytics/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "analytics",
+                "summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Global Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/analytics/global",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "analytics",
+                "global"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Price Distribution",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/analytics/price-distribution",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "analytics",
+                "price-distribution"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chronological Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/analytics/chronological-summary?interval=monthly",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "analytics",
+                "chronological-summary"
+              ],
+              "query": [
+                {
+                  "key": "interval",
+                  "value": "monthly"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Predictions & Simulations",
+      "item": [
+        {
+          "name": "Predict Coin Price",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/predictions?coinId=bitcoin&days=7",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "predictions"
+              ],
+              "query": [
+                {
+                  "key": "coinId",
+                  "value": "bitcoin"
+                },
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Simulate Portfolio Yield",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/portfolio/simulate?allocation=bitcoin:0.7,ethereum:0.3&investment=10000&days=30",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "portfolio",
+                "simulate"
+              ],
+              "query": [
+                {
+                  "key": "allocation",
+                  "value": "bitcoin:0.7,ethereum:0.3"
+                },
+                {
+                  "key": "investment",
+                  "value": "10000"
+                },
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Diagnostics",
+      "item": [
+        {
+          "name": "System Health Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/system/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "system",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "System Version Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/system/version",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "system",
+                "version"
+              ]
+            }
+          }
+        },
+        {
+          "name": "System Public Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coins/system/config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "system",
+                "config"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "your_access_token_jwt",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "your_refresh_token_jwt",
+      "type": "string"
+    }
+  ]
+}
