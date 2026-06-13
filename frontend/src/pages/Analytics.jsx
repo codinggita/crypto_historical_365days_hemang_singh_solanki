@@ -15,7 +15,7 @@ const Analytics = () => {
         setLoading(true);
         // Using the base api instance directly for this endpoint
         const response = await api.get('/coins/analytics/chronological-summary');
-        setAnalytics(response.data);
+        setAnalytics(response);
       } catch (error) {
         console.error('Failed to load analytics:', error);
       } finally {
@@ -42,14 +42,14 @@ const Analytics = () => {
     <PageContainer title="Analytics Insights">
       <div className="analytics-overview">
         <MetricCard 
-          title="Total Records Analyzed"
-          value={analytics?.summaryStats?.totalRecords?.toLocaleString() || 'N/A'}
-          icon="📚"
+          title="Months Analyzed"
+          value={analytics?.pagination?.totalRecords?.toLocaleString() || 'N/A'}
+          icon="📅"
         />
         <MetricCard 
-          title="Avg Daily Volume (Market)"
-          value={`$${(analytics?.summaryStats?.averageDailyVolume || 0).toLocaleString()}`}
-          icon="🌊"
+          title="Total Records Count"
+          value={analytics?.summary?.reduce((sum, item) => sum + item.recordCount, 0)?.toLocaleString() || '0'}
+          icon="📚"
         />
       </div>
 
@@ -70,11 +70,11 @@ const Analytics = () => {
             <tbody>
               {monthlyData.length > 0 ? (
                 monthlyData.map((row) => (
-                  <tr key={row._id}>
-                    <td><strong>{row._id}</strong></td>
-                    <td>${row.avgPrice?.toFixed(4)}</td>
-                    <td>${row.avgVolume?.toLocaleString()}</td>
-                    <td>{row.count}</td>
+                  <tr key={row.intervalValue}>
+                    <td><strong>{row.intervalValue}</strong></td>
+                    <td>${row.averagePrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td>${row.averageVolume?.toLocaleString()}</td>
+                    <td>{row.recordCount?.toLocaleString()}</td>
                   </tr>
                 ))
               ) : (

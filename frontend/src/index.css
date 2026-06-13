@@ -55,6 +55,10 @@
 body {
   font-family: var(--font-body);
   background-color: var(--color-background);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(194, 65, 12, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(245, 158, 11, 0.05), transparent 25%);
+  background-attachment: fixed;
   color: var(--color-text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
