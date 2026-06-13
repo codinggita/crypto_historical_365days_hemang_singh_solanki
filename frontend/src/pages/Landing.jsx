@@ -180,13 +180,42 @@ const InteractiveHeroCard = () => {
         <div className="dot red"></div>
         <div className="dot yellow"></div>
         <div className="dot green"></div>
+        <div style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Live Tracker</div>
       </div>
       <div className="panel-body">
-        <div className="chart-line"></div>
+        <div className="chart-line" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '0 10px 10px 10px' }}>
+          {/* Mini Mock Bar Chart */}
+          {[40, 65, 45, 80, 55, 90, 70, 100, 85, 110, 95, 120].map((height, i) => (
+            <motion.div 
+              key={i}
+              initial={{ height: 0 }}
+              animate={{ height: `${height}%` }}
+              transition={{ delay: i * 0.1, duration: 1, type: "spring" }}
+              style={{
+                width: '6%',
+                background: i === 11 ? 'var(--color-primary)' : 'rgba(255, 90, 31, 0.4)',
+                borderTopLeftRadius: 4,
+                borderTopRightRadius: 4
+              }}
+            />
+          ))}
+        </div>
         <div className="stats-row">
-          <div className="stat-box"></div>
-          <div className="stat-box active"></div>
-          <div className="stat-box"></div>
+          <div className="stat-box" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>BTC/USD</span>
+            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>$64.2k</span>
+            <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: 700 }}>+2.4%</span>
+          </div>
+          <div className="stat-box active" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-primary)', fontWeight: 600 }}>ETH/USD</span>
+            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>$3.4k</span>
+            <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: 700 }}>+5.1%</span>
+          </div>
+          <div className="stat-box" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>SOL/USD</span>
+            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>$145.2</span>
+            <span style={{ fontSize: '0.65rem', color: '#EF4444', fontWeight: 700 }}>-1.2%</span>
+          </div>
         </div>
       </div>
     </motion.div>
