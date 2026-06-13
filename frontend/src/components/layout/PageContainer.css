@@ -1,0 +1,33 @@
+.page-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.main-wrapper {
+  flex: 1;
+  margin-left: 256px; /* Offset for sidebar */
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.content-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments can go here */
+@media (max-width: 1024px) {
+  .main-wrapper {
+    margin-left: 0;
+  }
+  .sidebar {
+    display: none; /* In a real app we'd add a toggle */
+  }
+}
