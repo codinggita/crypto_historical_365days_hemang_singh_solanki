@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion';
 import { Activity, BarChart2, Shield, Zap, ChevronRight, TrendingUp } from 'lucide-react';
 import PageContainer from '../components/layout/PageContainer';
 import './Landing.css';
@@ -12,37 +12,47 @@ const Landing = () => {
     offset: ["start start", "end start"]
   });
 
-  const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, -100]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  // Smoother scroll values for parallax
+  const smoothY = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
+  
+  // Parallax movements
+  const orb1Y = useTransform(smoothY, [0, 1], [0, 300]);
+  const orb2Y = useTransform(smoothY, [0, 1], [0, -200]);
+  const orb3Y = useTransform(smoothY, [0, 1], [0, 150]);
+  
+  const heroContentY = useTransform(smoothY, [0, 1], [0, 150]);
+  const heroVisualY = useTransform(smoothY, [0, 1], [0, 80]);
+  const heroOpacity = useTransform(smoothY, [0, 0.4], [1, 0]);
 
   const staggerContainer = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.15,
+        delayChildren: 0.1
       }
     }
   };
 
   const fadeInUp = {
-    hidden: { opacity: 0, y: 30 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    hidden: { opacity: 0, y: 40 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 20 } }
   };
 
   return (
     <PageContainer showHeader={false}>
       <div className="landing-wrapper" ref={containerRef}>
         
-        {/* Floating Background Orbs */}
-        <motion.div className="orb orb-1" animate={{ y: [0, -20, 0], scale: [1, 1.05, 1] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
-        <motion.div className="orb orb-2" animate={{ y: [0, 30, 0], scale: [1, 1.1, 1] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }} />
+        {/* Parallax Floating Background Orbs */}
+        <motion.div className="orb orb-1" style={{ y: orb1Y }} />
+        <motion.div className="orb orb-2" style={{ y: orb2Y }} />
+        <motion.div className="orb orb-3" style={{ y: orb3Y }} />
 
         {/* Hero Section */}
         <motion.section 
           className="hero-section"
-          style={{ y: y1, opacity }}
+          style={{ y: heroContentY, opacity: heroOpacity }}
         >
           <motion.div 
             className="hero-content"
@@ -76,27 +86,13 @@ const Landing = () => {
 
           <motion.div 
             className="hero-visual"
-            initial={{ opacity: 0, scale: 0.8, rotateY: 15 }}
-            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-            transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-            style={{ y: y2 }}
+            initial={{ opacity: 0, scale: 0.85, rotateY: 10, rotateX: 5 }}
+            animate={{ opacity: 1, scale: 1, rotateY: -15, rotateX: 5 }}
+            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+            style={{ y: heroVisualY }}
           >
             {/* Abstract 3D-like Dashboard Card */}
-            <div className="glass-panel main-panel">
-              <div className="panel-header">
-                <div className="dot red"></div>
-                <div className="dot yellow"></div>
-                <div className="dot green"></div>
-              </div>
-              <div className="panel-body">
-                <div className="chart-line"></div>
-                <div className="stats-row">
-                  <div className="stat-box"></div>
-                  <div className="stat-box active"></div>
-                  <div className="stat-box"></div>
-                </div>
-              </div>
-            </div>
+            <InteractiveHeroCard />
           </motion.div>
         </motion.section>
 
@@ -104,10 +100,10 @@ const Landing = () => {
         <section className="features-section">
           <motion.div 
             className="section-header"
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <h2>Built for <span className="text-gradient">Precision</span></h2>
             <p>Everything you need to analyze cryptographic assets in one place.</p>
@@ -152,22 +148,86 @@ const Landing = () => {
   );
 };
 
-const FeatureCard = ({ icon, title, desc, delay }) => {
+// Component for the 3D rotating hero visual
+const InteractiveHeroCard = () => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const rotateX = useTransform(y, [-100, 100], [10, -10]);
+  const rotateY = useTransform(x, [-100, 100], [-10, 10]);
+
+  const handleMouseMove = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    x.set(event.clientX - rect.left - rect.width / 2);
+    y.set(event.clientY - rect.top - rect.height / 2);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
   return (
     <motion.div 
-      className="cyber-feature-card"
-      initial={{ opacity: 0, y: 50 }}
+      className="glass-panel main-panel"
+      style={{ rotateX, rotateY }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ rotateX: 0, rotateY: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+    >
+      <div className="panel-header">
+        <div className="dot red"></div>
+        <div className="dot yellow"></div>
+        <div className="dot green"></div>
+      </div>
+      <div className="panel-body">
+        <div className="chart-line"></div>
+        <div className="stats-row">
+          <div className="stat-box"></div>
+          <div className="stat-box active"></div>
+          <div className="stat-box"></div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Component for 3D Tilt Feature Cards
+const FeatureCard = ({ icon, title, desc, delay }) => {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const rotateX = useTransform(y, [-50, 50], [10, -10]);
+  const rotateY = useTransform(x, [-50, 50], [-10, 10]);
+
+  const handleMouseMove = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    x.set(event.clientX - rect.left - rect.width / 2);
+    y.set(event.clientY - rect.top - rect.height / 2);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <motion.div 
+      className="neo-feature-card"
+      initial={{ opacity: 0, y: 60 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.6, delay, type: "spring", stiffness: 200 }}
-      whileHover={{ y: -8, scale: 1.02 }}
+      style={{ rotateX, rotateY }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="feature-icon-wrapper">
         {icon}
       </div>
       <h3>{title}</h3>
       <p>{desc}</p>
-      <div className="card-glow"></div>
     </motion.div>
   );
 };

@@ -1,14 +1,13 @@
 .card {
-  background-color: rgba(20, 20, 20, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: var(--radius-lg);
   padding: 24px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
@@ -19,8 +18,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 90, 31, 0.5), transparent);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 90, 31, 0.3), transparent);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -35,11 +34,11 @@
 
 .card-interactive:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(255, 90, 31, 0.15);
-  border-color: rgba(255, 90, 31, 0.3);
+  box-shadow: 0 12px 40px rgba(255, 90, 31, 0.1);
+  border-color: rgba(255, 90, 31, 0.2);
 }
 
 .card.selected {
-  border: 1px solid rgba(255, 90, 31, 0.5);
-  box-shadow: 0 0 20px rgba(255, 90, 31, 0.2);
+  border: 1px solid rgba(255, 90, 31, 0.4);
+  box-shadow: 0 0 20px rgba(255, 90, 31, 0.1);
 }
