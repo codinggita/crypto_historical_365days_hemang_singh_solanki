@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Hexagon } from 'lucide-react';
 import './TopNavbar.css';
 
 const TopNavbar = () => {
@@ -18,8 +17,8 @@ const TopNavbar = () => {
     <nav className="top-navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-logo">
-          <Hexagon size={28} color="var(--color-primary)" strokeWidth={2.5} />
-          Crypto <span>Analytics</span>
+          <img src="/logo.png" alt="Crypto Logo" className="navbar-logo-img" />
+          Crypto <span>365</span>
         </Link>
         <div className="navbar-links">
           {links.map((link) => (
